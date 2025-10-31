@@ -13,6 +13,7 @@ import Schema from "./pages/Schema";
 import Merchants from "./pages/Merchants";
 import Compliance from "./pages/Compliance";
 import Risk from "./pages/Risk";
+import Monitoring from "./pages/Monitoring";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -73,6 +74,12 @@ const App = () => (
               <ProtectedRoute>
                 <Navigation />
                 <Compliance />
+              </ProtectedRoute>
+            } />
+            <Route path="/monitoring" element={
+              <ProtectedRoute>
+                <Navigation />
+                <Monitoring />
               </ProtectedRoute>
             } />
             <Route path="*" element={<NotFound />} />

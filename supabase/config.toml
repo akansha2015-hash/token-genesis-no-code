@@ -29,3 +29,12 @@ verify_jwt = false
 
 [functions.ai-fraud-check]
 verify_jwt = false
+
+[functions.health-check]
+verify_jwt = false
+
+[functions.compliance-check]
+verify_jwt = false
+
+[functions.send-alert]
+verify_jwt = false
