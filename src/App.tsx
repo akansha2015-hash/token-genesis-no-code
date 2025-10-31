@@ -15,6 +15,7 @@ import Compliance from "./pages/Compliance";
 import Risk from "./pages/Risk";
 import Monitoring from "./pages/Monitoring";
 import Reports from "./pages/Reports";
+import Governance from "./pages/Governance";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -87,6 +88,12 @@ const App = () => (
               <ProtectedRoute>
                 <Navigation />
                 <Reports />
+              </ProtectedRoute>
+            } />
+            <Route path="/governance" element={
+              <ProtectedRoute>
+                <Navigation />
+                <Governance />
               </ProtectedRoute>
             } />
             <Route path="*" element={<NotFound />} />

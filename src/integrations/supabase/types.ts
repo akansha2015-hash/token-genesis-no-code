@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_performance_metrics: {
+        Row: {
+          created_at: string
+          endpoint: string
+          error_message: string | null
+          id: string
+          merchant_id: string | null
+          method: string
+          response_time_ms: number
+          status_code: number
+        }
+        Insert: {
+          created_at?: string
+          endpoint: string
+          error_message?: string | null
+          id?: string
+          merchant_id?: string | null
+          method: string
+          response_time_ms: number
+          status_code: number
+        }
+        Update: {
+          created_at?: string
+          endpoint?: string
+          error_message?: string | null
+          id?: string
+          merchant_id?: string | null
+          method?: string
+          response_time_ms?: number
+          status_code?: number
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           accessed_fields: string[] | null
@@ -196,6 +229,45 @@ export type Database = {
           key_hash?: string
           key_version?: number
           rotated_by?: string | null
+        }
+        Relationships: []
+      }
+      feature_backlog: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          estimated_effort: number | null
+          id: string
+          performance_impact: Json | null
+          priority: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          estimated_effort?: number | null
+          id?: string
+          performance_impact?: Json | null
+          priority?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          estimated_effort?: number | null
+          id?: string
+          performance_impact?: Json | null
+          priority?: string
+          status?: string
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -455,6 +527,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_feedback: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          id: string
+          priority: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description: string
+          id?: string
+          priority?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          id?: string
+          priority?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {

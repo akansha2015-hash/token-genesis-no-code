@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.export-report]
 verify_jwt = false
+
+[functions.track-performance]
+verify_jwt = false

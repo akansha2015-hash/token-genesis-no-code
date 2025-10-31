@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Shield, LayoutDashboard, Database, FileCode, Users, ShieldCheck, AlertTriangle, LogOut, Activity, TrendingUp } from "lucide-react";
+import { Shield, LayoutDashboard, Database, FileCode, Users, ShieldCheck, AlertTriangle, LogOut, Activity, TrendingUp, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ const navItems = [
   { path: "/compliance", label: "Compliance", icon: ShieldCheck },
   { path: "/monitoring", label: "Monitoring", icon: Activity },
   { path: "/reports", label: "Reports", icon: TrendingUp },
+  { path: "/governance", label: "Governance", icon: Settings },
 ];
 
 export const Navigation = () => {
