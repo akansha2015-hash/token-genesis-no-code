@@ -14,7 +14,262 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      cards: {
+        Row: {
+          card_brand: string | null
+          created_at: string
+          customer_id: string | null
+          expiry_month: number
+          expiry_year: number
+          id: string
+          issuer_id: string | null
+          last_four: string
+          pan_encrypted: string
+          updated_at: string
+        }
+        Insert: {
+          card_brand?: string | null
+          created_at?: string
+          customer_id?: string | null
+          expiry_month: number
+          expiry_year: number
+          id?: string
+          issuer_id?: string | null
+          last_four: string
+          pan_encrypted: string
+          updated_at?: string
+        }
+        Update: {
+          card_brand?: string | null
+          created_at?: string
+          customer_id?: string | null
+          expiry_month?: number
+          expiry_year?: number
+          id?: string
+          issuer_id?: string | null
+          last_four?: string
+          pan_encrypted?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      devices: {
+        Row: {
+          created_at: string
+          device_fingerprint: string
+          device_model: string | null
+          device_type: string | null
+          id: string
+          last_seen: string | null
+          os_version: string | null
+        }
+        Insert: {
+          created_at?: string
+          device_fingerprint: string
+          device_model?: string | null
+          device_type?: string | null
+          id?: string
+          last_seen?: string | null
+          os_version?: string | null
+        }
+        Update: {
+          created_at?: string
+          device_fingerprint?: string
+          device_model?: string | null
+          device_type?: string | null
+          id?: string
+          last_seen?: string | null
+          os_version?: string | null
+        }
+        Relationships: []
+      }
+      merchants: {
+        Row: {
+          api_key: string
+          created_at: string
+          id: string
+          name: string
+          status: Database["public"]["Enums"]["merchant_status"]
+          updated_at: string
+        }
+        Insert: {
+          api_key?: string
+          created_at?: string
+          id?: string
+          name: string
+          status?: Database["public"]["Enums"]["merchant_status"]
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string
+          created_at?: string
+          id?: string
+          name?: string
+          status?: Database["public"]["Enums"]["merchant_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      risk_events: {
+        Row: {
+          created_at: string
+          decision: Database["public"]["Enums"]["risk_decision"]
+          event_type: string
+          id: string
+          reason: string | null
+          risk_score: number | null
+          severity: string | null
+          token_id: string | null
+          transaction_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          decision: Database["public"]["Enums"]["risk_decision"]
+          event_type: string
+          id?: string
+          reason?: string | null
+          risk_score?: number | null
+          severity?: string | null
+          token_id?: string | null
+          transaction_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          decision?: Database["public"]["Enums"]["risk_decision"]
+          event_type?: string
+          id?: string
+          reason?: string | null
+          risk_score?: number | null
+          severity?: string | null
+          token_id?: string | null
+          transaction_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "risk_events_token_id_fkey"
+            columns: ["token_id"]
+            isOneToOne: false
+            referencedRelation: "tokens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "risk_events_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tokens: {
+        Row: {
+          card_id: string
+          created_at: string
+          device_id: string | null
+          expires_at: string
+          id: string
+          merchant_id: string
+          status: Database["public"]["Enums"]["token_status"]
+          token_value: string
+          updated_at: string
+        }
+        Insert: {
+          card_id: string
+          created_at?: string
+          device_id?: string | null
+          expires_at: string
+          id?: string
+          merchant_id: string
+          status?: Database["public"]["Enums"]["token_status"]
+          token_value?: string
+          updated_at?: string
+        }
+        Update: {
+          card_id?: string
+          created_at?: string
+          device_id?: string | null
+          expires_at?: string
+          id?: string
+          merchant_id?: string
+          status?: Database["public"]["Enums"]["token_status"]
+          token_value?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tokens_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tokens_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tokens_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          id: string
+          merchant_id: string
+          reference_number: string | null
+          status: Database["public"]["Enums"]["transaction_status"]
+          token_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          id?: string
+          merchant_id: string
+          reference_number?: string | null
+          status?: Database["public"]["Enums"]["transaction_status"]
+          token_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          merchant_id?: string
+          reference_number?: string | null
+          status?: Database["public"]["Enums"]["transaction_status"]
+          token_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_token_id_fkey"
+            columns: ["token_id"]
+            isOneToOne: false
+            referencedRelation: "tokens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +278,15 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      merchant_status: "active" | "pending" | "suspended" | "inactive"
+      risk_decision: "approve" | "decline" | "review" | "challenge"
+      token_status: "active" | "pending" | "expired" | "revoked" | "suspended"
+      transaction_status:
+        | "pending"
+        | "approved"
+        | "declined"
+        | "failed"
+        | "reversed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +413,17 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      merchant_status: ["active", "pending", "suspended", "inactive"],
+      risk_decision: ["approve", "decline", "review", "challenge"],
+      token_status: ["active", "pending", "expired", "revoked", "suspended"],
+      transaction_status: [
+        "pending",
+        "approved",
+        "declined",
+        "failed",
+        "reversed",
+      ],
+    },
   },
 } as const
