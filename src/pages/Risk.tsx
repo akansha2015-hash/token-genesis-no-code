@@ -2,7 +2,10 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, TrendingUp, Shield, XCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertTriangle, TrendingUp, Shield, XCircle, Search, Filter } from "lucide-react";
 import { toast } from "sonner";
 
 interface RiskEvent {
@@ -19,7 +22,11 @@ interface RiskEvent {
 
 export default function Risk() {
   const [riskEvents, setRiskEvents] = useState<RiskEvent[]>([]);
+  const [filteredEvents, setFilteredEvents] = useState<RiskEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [severityFilter, setSeverityFilter] = useState<string>("all");
+  const [decisionFilter, setDecisionFilter] = useState<string>("all");
   const [stats, setStats] = useState({
     totalEvents: 0,
     highRisk: 0,
@@ -30,6 +37,28 @@ export default function Risk() {
   useEffect(() => {
     fetchRiskEvents();
   }, []);
+
+  useEffect(() => {
+    let filtered = riskEvents;
+
+    if (searchQuery) {
+      filtered = filtered.filter(e =>
+        e.event_type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.reason?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.token_id?.includes(searchQuery)
+      );
+    }
+
+    if (severityFilter !== "all") {
+      filtered = filtered.filter(e => e.severity === severityFilter);
+    }
+
+    if (decisionFilter !== "all") {
+      filtered = filtered.filter(e => e.decision === decisionFilter);
+    }
+
+    setFilteredEvents(filtered);
+  }, [riskEvents, searchQuery, severityFilter, decisionFilter]);
 
   const fetchRiskEvents = async () => {
     try {
@@ -137,6 +166,47 @@ export default function Risk() {
           </Card>
         </div>
 
+        {/* Filters */}
+        <Card className="shadow-card">
+          <CardContent className="pt-6">
+            <div className="flex gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by event type, token ID, or reason..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <Select value={severityFilter} onValueChange={setSeverityFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Severity" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Severity</SelectItem>
+                  <SelectItem value="critical">Critical</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="low">Low</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={decisionFilter} onValueChange={setDecisionFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Decision" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Decisions</SelectItem>
+                  <SelectItem value="approve">Approve</SelectItem>
+                  <SelectItem value="challenge">Challenge</SelectItem>
+                  <SelectItem value="decline">Decline</SelectItem>
+                  <SelectItem value="review">Review</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Risk Events List */}
         <Card className="shadow-card">
           <CardHeader>
@@ -146,11 +216,13 @@ export default function Risk() {
           <CardContent>
             {isLoading ? (
               <div className="text-center py-8 text-muted-foreground">Loading events...</div>
-            ) : riskEvents.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">No risk events found</div>
+            ) : filteredEvents.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                {riskEvents.length === 0 ? "No risk events found" : "No events match your filters"}
+              </div>
             ) : (
               <div className="space-y-3">
-                {riskEvents.map((event) => (
+                {filteredEvents.map((event) => (
                   <div
                     key={event.id}
                     className="flex items-center gap-4 p-4 border border-border rounded-lg hover:bg-secondary transition-colors"

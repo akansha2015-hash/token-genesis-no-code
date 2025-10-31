@@ -23,3 +23,9 @@ verify_jwt = false
 
 [functions.webhook-trigger]
 verify_jwt = true
+
+[functions.risk-score]
+verify_jwt = false
+
+[functions.ai-fraud-check]
+verify_jwt = false

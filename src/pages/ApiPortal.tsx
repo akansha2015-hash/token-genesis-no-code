@@ -146,6 +146,57 @@ export default function ApiPortal() {
   "created_at": "2025-10-30T12:30:00Z"
 }`,
     },
+    {
+      method: "POST",
+      path: "/risk-score",
+      desc: "Calculate risk score for a transaction using weighted factors",
+      isLive: true,
+      requiresAuth: false,
+      authType: "None (Internal API)",
+      request: `{
+  "transaction_id": "650e8400-e29b-41d4-a716-446655440000",
+  "amount": 5000.00,
+  "merchant_id": "merchant-uuid",
+  "device_id": "device-uuid"
+}`,
+      response: `{
+  "risk_score": 75,
+  "decision": "challenge",
+  "severity": "high",
+  "risk_event_id": "uuid",
+  "factors": [
+    "High transaction amount: $5000",
+    "New or unverified device"
+  ]
+}`,
+    },
+    {
+      method: "POST",
+      path: "/ai-fraud-check",
+      desc: "AI-powered fraud detection using machine learning",
+      isLive: true,
+      requiresAuth: false,
+      authType: "None (Internal API)",
+      request: `{
+  "transaction_data": {
+    "amount": 5000.00,
+    "merchant_name": "Test Merchant",
+    "merchant_status": "active",
+    "device_type": "iPhone 14",
+    "device_tx_count": 2
+  }
+}`,
+      response: `{
+  "ai_analysis": {
+    "risk_indicators": [
+      "High transaction amount",
+      "Limited device history"
+    ],
+    "confidence": "high",
+    "recommendation": "review"
+  }
+}`,
+    },
   ];
 
   const webhookEvents = [
