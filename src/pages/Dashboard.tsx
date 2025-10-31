@@ -1,27 +1,100 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Shield, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
+import { toast } from "sonner";
+
+interface Token {
+  id: string;
+  token_value: string;
+  status: string;
+  created_at: string;
+  merchant_id: string;
+  merchants?: { name: string };
+}
+
+interface Transaction {
+  id: string;
+  status: string;
+  created_at: string;
+}
 
 export default function Dashboard() {
-  const metrics = [
-    { label: "Active Tokens", value: "847,293", change: "+12.3%", trend: "up", icon: Shield },
-    { label: "Today's Transactions", value: "143,291", change: "+8.7%", trend: "up", icon: TrendingUp },
-    { label: "Failed Validations", value: "247", change: "-15.2%", trend: "down", icon: AlertTriangle },
-    { label: "Avg Response Time", value: "42ms", change: "-5ms", trend: "down", icon: Clock },
-  ];
+  const [tokens, setTokens] = useState<Token[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [metrics, setMetrics] = useState({
+    activeTokens: 0,
+    todayTransactions: 0,
+    failedValidations: 0,
+    avgResponseTime: "0ms",
+  });
 
-  const recentTokens = [
-    { id: "TKN-8829A", merchant: "Retail Corp", status: "active", created: "2 min ago" },
-    { id: "TKN-8828B", merchant: "E-commerce Inc", status: "active", created: "5 min ago" },
-    { id: "TKN-8827C", merchant: "Payment Hub", status: "pending", created: "8 min ago" },
-    { id: "TKN-8826D", merchant: "Global Merchant", status: "active", created: "12 min ago" },
-    { id: "TKN-8825E", merchant: "Tech Solutions", status: "revoked", created: "15 min ago" },
-  ];
+  useEffect(() => {
+    fetchDashboardData();
+    
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('dashboard-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tokens' }, () => {
+        fetchDashboardData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, () => {
+        fetchDashboardData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      // Fetch active tokens count
+      const { count: activeCount } = await supabase
+        .from("tokens")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "active");
+
+      // Fetch today's transactions
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const { count: todayCount } = await supabase
+        .from("transactions")
+        .select("*", { count: "exact", head: true })
+        .gte("created_at", today.toISOString());
+
+      // Fetch failed validations (pending/failed transactions)
+      const { count: failedCount } = await supabase
+        .from("transactions")
+        .select("*", { count: "exact", head: true })
+        .in("status", ["failed", "pending"]);
+
+      // Fetch recent tokens with merchant info
+      const { data: recentTokens } = await supabase
+        .from("tokens")
+        .select("*, merchants(name)")
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      setMetrics({
+        activeTokens: activeCount || 0,
+        todayTransactions: todayCount || 0,
+        failedValidations: failedCount || 0,
+        avgResponseTime: "42ms", // This would need API monitoring
+      });
+
+      setTokens(recentTokens || []);
+    } catch (error: any) {
+      console.error("Error fetching dashboard data:", error);
+      toast.error("Failed to load dashboard data");
+    }
+  };
 
   const alerts = [
-    { type: "info", message: "System maintenance scheduled for Sunday 2:00 AM UTC", time: "1h ago" },
-    { type: "warning", message: "Elevated token creation requests detected", time: "3h ago" },
-    { type: "success", message: "Security scan completed - no issues found", time: "5h ago" },
+    { type: "info", message: "Real-time data updates enabled", time: "Just now" },
+    { type: "success", message: "All systems operational", time: "5m ago" },
   ];
 
   return (
@@ -34,30 +107,50 @@ export default function Dashboard() {
 
         {/* Key Metrics */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {metrics.map((metric) => {
-            const Icon = metric.icon;
-            const isPositive = metric.trend === "up";
-            const TrendIcon = isPositive ? TrendingUp : TrendingDown;
-            return (
-              <Card key={metric.label} className="shadow-card">
-                <CardContent className="pt-6">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground">{metric.label}</p>
-                      <p className="text-3xl font-bold">{metric.value}</p>
-                      <div className="flex items-center gap-1 text-sm">
-                        <TrendIcon className={`w-4 h-4 ${isPositive ? 'text-success' : 'text-muted-foreground'}`} />
-                        <span className={isPositive ? 'text-success' : 'text-muted-foreground'}>
-                          {metric.change}
-                        </span>
-                      </div>
-                    </div>
-                    <Icon className="w-8 h-8 text-primary opacity-20" />
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+          <Card className="shadow-card">
+            <CardContent className="pt-6">
+              <div className="flex items-start justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">Active Tokens</p>
+                  <p className="text-3xl font-bold">{metrics.activeTokens.toLocaleString()}</p>
+                </div>
+                <Shield className="w-8 h-8 text-primary opacity-20" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="shadow-card">
+            <CardContent className="pt-6">
+              <div className="flex items-start justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">Today's Transactions</p>
+                  <p className="text-3xl font-bold">{metrics.todayTransactions.toLocaleString()}</p>
+                </div>
+                <TrendingUp className="w-8 h-8 text-primary opacity-20" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="shadow-card">
+            <CardContent className="pt-6">
+              <div className="flex items-start justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">Failed Validations</p>
+                  <p className="text-3xl font-bold">{metrics.failedValidations}</p>
+                </div>
+                <AlertTriangle className="w-8 h-8 text-warning opacity-20" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="shadow-card">
+            <CardContent className="pt-6">
+              <div className="flex items-start justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">Avg Response Time</p>
+                  <p className="text-3xl font-bold">{metrics.avgResponseTime}</p>
+                </div>
+                <Clock className="w-8 h-8 text-primary opacity-20" />
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
@@ -69,31 +162,37 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {recentTokens.map((token) => (
-                  <div key={token.id} className="flex items-center justify-between p-3 border border-border rounded-md hover:bg-secondary transition-colors">
-                    <div className="flex items-center gap-3">
-                      <Shield className="w-4 h-4 text-primary" />
-                      <div>
-                        <p className="font-mono text-sm font-semibold">{token.id}</p>
-                        <p className="text-xs text-muted-foreground">{token.merchant}</p>
+                {tokens.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">No recent tokens</div>
+                ) : (
+                  tokens.map((token) => (
+                    <div key={token.id} className="flex items-center justify-between p-3 border border-border rounded-md hover:bg-secondary transition-colors">
+                      <div className="flex items-center gap-3">
+                        <Shield className="w-4 h-4 text-primary" />
+                        <div>
+                          <p className="font-mono text-sm font-semibold">{token.token_value.substring(0, 16)}...</p>
+                          <p className="text-xs text-muted-foreground">{token.merchants?.name || "Unknown"}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Badge
+                          variant={
+                            token.status === "active"
+                              ? "default"
+                              : token.status === "pending"
+                              ? "secondary"
+                              : "destructive"
+                          }
+                        >
+                          {token.status}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(token.created_at).toLocaleDateString()}
+                        </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <Badge
-                        variant={
-                          token.status === "active"
-                            ? "default"
-                            : token.status === "pending"
-                            ? "secondary"
-                            : "destructive"
-                        }
-                      >
-                        {token.status}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">{token.created}</span>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>

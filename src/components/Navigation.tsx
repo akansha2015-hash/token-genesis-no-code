@@ -1,11 +1,16 @@
-import { Link, useLocation } from "react-router-dom";
-import { Shield, LayoutDashboard, Database, FileCode, Users, ShieldCheck } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Shield, LayoutDashboard, Database, FileCode, Users, ShieldCheck, AlertTriangle, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 const navItems = [
   { path: "/", label: "Overview", icon: LayoutDashboard },
   { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { path: "/tokens", label: "Token Management", icon: Shield },
+  { path: "/risk", label: "Risk Monitor", icon: AlertTriangle },
   { path: "/api", label: "API Portal", icon: FileCode },
   { path: "/schema", label: "Database Schema", icon: Database },
   { path: "/merchants", label: "Merchants", icon: Users },
@@ -14,6 +19,26 @@ const navItems = [
 
 export const Navigation = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    toast.success("Logged out successfully");
+    navigate("/auth");
+  };
 
   return (
     <nav className="border-b border-border bg-card">
@@ -47,6 +72,32 @@ export const Navigation = () => {
                 );
               })}
             </div>
+          </div>
+          <div className="flex items-center gap-4">
+            {user ? (
+              <>
+                <span className="text-sm text-muted-foreground hidden md:block">
+                  {user.email}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleLogout}
+                  className="gap-2"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => navigate("/auth")}
+              >
+                Login
+              </Button>
+            )}
           </div>
         </div>
       </div>
