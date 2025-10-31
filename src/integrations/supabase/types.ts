@@ -14,6 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          error_message: string | null
+          id: string
+          merchant_id: string | null
+          operation_type: string
+          request_data: Json | null
+          request_ip: string | null
+          response_status: number | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          error_message?: string | null
+          id?: string
+          merchant_id?: string | null
+          operation_type: string
+          request_data?: Json | null
+          request_ip?: string | null
+          response_status?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          error_message?: string | null
+          id?: string
+          merchant_id?: string | null
+          operation_type?: string
+          request_data?: Json | null
+          request_ip?: string | null
+          response_status?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cards: {
         Row: {
           card_brand: string | null
@@ -275,7 +325,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      decrypt_pan: {
+        Args: { encrypted_data: string; encryption_key: string }
+        Returns: string
+      }
+      encrypt_pan: {
+        Args: { encryption_key: string; pan_data: string }
+        Returns: string
+      }
     }
     Enums: {
       merchant_status: "active" | "pending" | "suspended" | "inactive"

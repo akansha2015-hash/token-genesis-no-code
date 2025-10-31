@@ -1,1 +1,7 @@
 project_id = "xcqeubgmmbqjzgzhwghm"
+
+[functions.tokenize]
+verify_jwt = false
+
+[functions.token-status]
+verify_jwt = false

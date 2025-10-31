@@ -14,51 +14,68 @@ export default function ApiPortal() {
   const endpoints = [
     {
       method: "POST",
-      path: "/api/tokens/create",
-      desc: "Generate a new payment token",
+      path: "/tokenize",
+      desc: "Generate a new payment token from card data",
+      isLive: true,
+      requiresAuth: false,
+      authType: "API Key (x-api-key header)",
       request: `{
-  "merchant_id": "MCH-12345",
-  "card_number": "4111111111111111",
-  "expiry": "12/26",
-  "cvv": "123",
-  "device_id": "DEV-98765"
+  "pan": "4111111111111111",
+  "expiry_month": 12,
+  "expiry_year": 2026,
+  "customer_id": "CUST-12345",
+  "issuer_id": "VISA",
+  "card_brand": "Visa"
 }`,
       response: `{
-  "token_id": "TKN-8829A",
+  "token_id": "550e8400-e29b-41d4-a716-446655440000",
+  "token_value": "7b3f8c9d2a1e4f6b8c0d1e2f3a4b5c6d",
   "status": "active",
-  "created_at": "2025-10-30T10:30:00Z",
-  "expires_at": "2026-10-30T10:30:00Z"
-}`,
-    },
-    {
-      method: "GET",
-      path: "/api/tokens/{id}",
-      desc: "Retrieve token details",
-      request: null,
-      response: `{
-  "token_id": "TKN-8829A",
-  "merchant_id": "MCH-12345",
-  "card_last4": "1111",
-  "status": "active",
-  "device_id": "DEV-98765",
+  "card_last_four": "1111",
+  "expires_at": "2026-10-30T10:30:00Z",
   "created_at": "2025-10-30T10:30:00Z"
 }`,
     },
     {
       method: "POST",
-      path: "/api/tokens/validate",
-      desc: "Validate token for transaction",
+      path: "/detokenize",
+      desc: "Resolve token to original card data (Internal Only)",
+      isLive: true,
+      requiresAuth: true,
+      authType: "JWT Bearer Token",
       request: `{
-  "token_id": "TKN-8829A",
-  "amount": 99.99,
-  "currency": "USD",
-  "merchant_id": "MCH-12345"
+  "token_value": "7b3f8c9d2a1e4f6b8c0d1e2f3a4b5c6d"
 }`,
       response: `{
-  "valid": true,
-  "transaction_id": "TXN-54321",
-  "status": "approved",
-  "timestamp": "2025-10-30T10:35:00Z"
+  "token_id": "550e8400-e29b-41d4-a716-446655440000",
+  "pan": "4111111111111111",
+  "last_four": "1111",
+  "expiry_month": 12,
+  "expiry_year": 2026,
+  "card_brand": "Visa",
+  "customer_id": "CUST-12345",
+  "merchant_id": "...",
+  "status": "active"
+}`,
+    },
+    {
+      method: "POST",
+      path: "/token-status",
+      desc: "Update token lifecycle status",
+      isLive: true,
+      requiresAuth: false,
+      authType: "API Key (x-api-key header)",
+      request: `{
+  "token_id": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "suspended",
+  "reason": "Suspected fraudulent activity"
+}`,
+      response: `{
+  "token_id": "550e8400-e29b-41d4-a716-446655440000",
+  "token_value": "7b3f8c9d2a1e4f6b8c0d1e2f3a4b5c6d",
+  "old_status": "active",
+  "new_status": "suspended",
+  "updated_at": "2025-10-30T11:30:00Z"
 }`,
     },
   ];
@@ -116,16 +133,35 @@ export default function ApiPortal() {
           {endpoints.map((endpoint, idx) => (
             <Card key={idx} className="shadow-card">
               <CardHeader>
-                <div className="flex items-center gap-3 mb-2">
-                  <Badge
-                    variant={endpoint.method === "GET" ? "secondary" : "default"}
-                    className="w-16 justify-center"
-                  >
-                    {endpoint.method}
-                  </Badge>
-                  <code className="text-lg font-mono">{endpoint.path}</code>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-3">
+                    <Badge
+                      variant={endpoint.method === "GET" ? "secondary" : "default"}
+                      className="w-16 justify-center"
+                    >
+                      {endpoint.method}
+                    </Badge>
+                    <code className="text-lg font-mono">{endpoint.path}</code>
+                    {endpoint.isLive && (
+                      <Badge variant="outline" className="text-success border-success">
+                        ✓ Live
+                      </Badge>
+                    )}
+                  </div>
                 </div>
-                <CardDescription>{endpoint.desc}</CardDescription>
+                <CardDescription className="flex items-start gap-2">
+                  <span>{endpoint.desc}</span>
+                  {endpoint.requiresAuth && (
+                    <Badge variant="secondary" className="text-xs">
+                      🔒 Auth: {endpoint.authType}
+                    </Badge>
+                  )}
+                  {!endpoint.requiresAuth && (
+                    <Badge variant="secondary" className="text-xs">
+                      🔑 Auth: {endpoint.authType}
+                    </Badge>
+                  )}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue={endpoint.request ? "request" : "response"}>
