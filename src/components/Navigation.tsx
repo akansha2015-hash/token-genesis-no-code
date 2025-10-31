@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Shield, LayoutDashboard, Database, FileCode, Users } from "lucide-react";
+import { Shield, LayoutDashboard, Database, FileCode, Users, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -9,6 +9,7 @@ const navItems = [
   { path: "/api", label: "API Portal", icon: FileCode },
   { path: "/schema", label: "Database Schema", icon: Database },
   { path: "/merchants", label: "Merchants", icon: Users },
+  { path: "/compliance", label: "Compliance", icon: ShieldCheck },
 ];
 
 export const Navigation = () => {

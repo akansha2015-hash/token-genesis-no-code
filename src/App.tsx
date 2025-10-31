@@ -10,6 +10,7 @@ import Tokens from "./pages/Tokens";
 import ApiPortal from "./pages/ApiPortal";
 import Schema from "./pages/Schema";
 import Merchants from "./pages/Merchants";
+import Compliance from "./pages/Compliance";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="/api" element={<ApiPortal />} />
             <Route path="/schema" element={<Schema />} />
             <Route path="/merchants" element={<Merchants />} />
+            <Route path="/compliance" element={<Compliance />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>

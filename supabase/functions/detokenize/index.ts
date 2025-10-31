@@ -10,6 +10,33 @@ interface DetokenizeRequest {
   token_value: string;
 }
 
+// Role-based access control: Only admin and auditor roles can detokenize
+async function checkUserRole(supabase: any, userId: string, allowedRoles: string[]) {
+  const { data: roles } = await supabase
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', userId)
+
+  if (!roles || roles.length === 0) {
+    return { hasAccess: false, userRole: null }
+  }
+
+  const userRole = roles[0].role
+  return { hasAccess: allowedRoles.includes(userRole), userRole }
+}
+
+// Compliance check for detokenization
+async function logComplianceCheck(supabase: any, checkType: string, result: string, details: any) {
+  await supabase
+    .from('compliance_logs')
+    .insert({
+      check_type: checkType,
+      check_result: result,
+      details: details,
+      severity: result === 'passed' ? 'info' : 'critical'
+    })
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -26,9 +53,10 @@ serve(async (req) => {
   try {
     // This endpoint requires authentication (JWT)
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       auditLogData.response_status = 401;
       auditLogData.error_message = 'Missing authorization header';
+      await logComplianceCheck(null, 'detokenization_auth', 'failed', { error: 'Missing authorization' });
       return new Response(
         JSON.stringify({ error: 'Authentication required' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -39,6 +67,43 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Verify user session and role
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token)
+
+    if (userError || !user) {
+      auditLogData.response_status = 401;
+      auditLogData.error_message = 'Invalid user session';
+      await logAudit(supabase, auditLogData);
+      await logComplianceCheck(supabase, 'detokenization_auth', 'failed', { error: 'Invalid user session' });
+      
+      return new Response(
+        JSON.stringify({ error: 'Invalid user session' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if user has admin or auditor role
+    const roleCheck = await checkUserRole(supabase, user.id, ['admin', 'auditor'])
+    if (!roleCheck.hasAccess) {
+      auditLogData.user_id = user.id;
+      auditLogData.response_status = 403;
+      auditLogData.error_message = 'Insufficient privileges';
+      await logAudit(supabase, auditLogData);
+      await logComplianceCheck(supabase, 'detokenization_authorization', 'failed', { 
+        user_id: user.id,
+        required_roles: ['admin', 'auditor'],
+        error: 'Insufficient privileges'
+      });
+      
+      return new Response(
+        JSON.stringify({ error: 'Access denied. Only admin and auditor roles can detokenize.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    auditLogData.user_id = user.id;
 
     // Parse request body
     const requestData: DetokenizeRequest = await req.json();
@@ -55,7 +120,7 @@ serve(async (req) => {
     }
 
     // Find token
-    const { data: token, error: tokenError } = await supabase
+    const { data: tokenData, error: tokenError } = await supabase
       .from('tokens')
       .select(`
         id,
@@ -68,7 +133,7 @@ serve(async (req) => {
       .eq('token_value', requestData.token_value)
       .single();
 
-    if (tokenError || !token) {
+    if (tokenError || !tokenData) {
       console.error('Token not found:', tokenError);
       auditLogData.response_status = 404;
       auditLogData.error_message = 'Token not found';
@@ -83,7 +148,7 @@ serve(async (req) => {
     const { data: card, error: cardError } = await supabase
       .from('cards')
       .select('pan_encrypted, last_four, expiry_month, expiry_year, card_brand, customer_id, issuer_id')
-      .eq('id', token.card_id)
+      .eq('id', tokenData.card_id)
       .single();
 
     if (cardError || !card) {
@@ -97,22 +162,22 @@ serve(async (req) => {
       );
     }
 
-    auditLogData.entity_id = token.id;
-    auditLogData.merchant_id = token.merchant_id;
+    auditLogData.entity_id = tokenData.id;
+    auditLogData.merchant_id = tokenData.merchant_id;
 
     // Check token status
-    if (token.status !== 'active') {
+    if (tokenData.status !== 'active') {
       auditLogData.response_status = 403;
-      auditLogData.error_message = `Token is ${token.status}`;
+      auditLogData.error_message = `Token is ${tokenData.status}`;
       await logAudit(supabase, auditLogData);
       return new Response(
-        JSON.stringify({ error: `Token is ${token.status}` }),
+        JSON.stringify({ error: `Token is ${tokenData.status}` }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     // Check token expiry
-    if (new Date(token.expires_at) < new Date()) {
+    if (new Date(tokenData.expires_at) < new Date()) {
       auditLogData.response_status = 403;
       auditLogData.error_message = 'Token expired';
       await logAudit(supabase, auditLogData);
@@ -141,16 +206,32 @@ serve(async (req) => {
       );
     }
 
-    // Log successful operation (but don't log PAN)
+    // Log successful operation with field-level access tracking
     auditLogData.response_status = 200;
+    auditLogData.accessed_fields = ['pan', 'card_brand', 'expiry_month', 'expiry_year'];
+    auditLogData.compliance_flags = {
+      pci_dss_compliant: true,
+      role_verified: true,
+      user_role: roleCheck.userRole,
+      decryption_used: true
+    };
     await logAudit(supabase, auditLogData);
 
+    // Log compliance check for PAN access
+    await logComplianceCheck(supabase, 'pan_access', 'passed', {
+      user_id: user.id,
+      user_role: roleCheck.userRole,
+      token_id: tokenData.id,
+      merchant_id: tokenData.merchant_id,
+      access_method: 'detokenization'
+    });
+
     const responseTime = Date.now() - startTime;
-    console.log(`Token detokenized successfully in ${responseTime}ms:`, token.id);
+    console.log(`Token detokenized successfully in ${responseTime}ms:`, tokenData.id, 'by user:', user.id);
 
     return new Response(
       JSON.stringify({
-        token_id: token.id,
+        token_id: tokenData.id,
         pan: decryptedPan,
         last_four: card.last_four,
         expiry_month: card.expiry_month,
@@ -158,8 +239,8 @@ serve(async (req) => {
         card_brand: card.card_brand,
         customer_id: card.customer_id,
         issuer_id: card.issuer_id,
-        merchant_id: token.merchant_id,
-        status: token.status,
+        merchant_id: tokenData.merchant_id,
+        status: tokenData.status,
       }),
       {
         status: 200,

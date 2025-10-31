@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.token-status]
 verify_jwt = false
+
+[functions.detokenize]
+verify_jwt = true
+
+[functions.key-rotation]
+verify_jwt = true

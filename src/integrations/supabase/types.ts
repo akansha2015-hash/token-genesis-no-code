@@ -16,6 +16,8 @@ export type Database = {
     Tables: {
       audit_logs: {
         Row: {
+          accessed_fields: string[] | null
+          compliance_flags: Json | null
           created_at: string
           entity_id: string | null
           entity_type: string
@@ -29,6 +31,8 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          accessed_fields?: string[] | null
+          compliance_flags?: Json | null
           created_at?: string
           entity_id?: string | null
           entity_type: string
@@ -42,6 +46,8 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          accessed_fields?: string[] | null
+          compliance_flags?: Json | null
           created_at?: string
           entity_id?: string | null
           entity_type?: string
@@ -103,6 +109,36 @@ export type Database = {
         }
         Relationships: []
       }
+      compliance_logs: {
+        Row: {
+          check_result: string
+          check_type: string
+          created_at: string
+          details: Json | null
+          id: string
+          remediation_status: string | null
+          severity: string
+        }
+        Insert: {
+          check_result: string
+          check_type: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          remediation_status?: string | null
+          severity?: string
+        }
+        Update: {
+          check_result?: string
+          check_type?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          remediation_status?: string | null
+          severity?: string
+        }
+        Relationships: []
+      }
       devices: {
         Row: {
           created_at: string
@@ -133,6 +169,36 @@ export type Database = {
         }
         Relationships: []
       }
+      encryption_keys: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          is_active: boolean
+          key_hash: string
+          key_version: number
+          rotated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          is_active?: boolean
+          key_hash: string
+          key_version: number
+          rotated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          is_active?: boolean
+          key_hash?: string
+          key_version?: number
+          rotated_by?: string | null
+        }
+        Relationships: []
+      }
       merchants: {
         Row: {
           api_key: string
@@ -159,6 +225,41 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      rate_limits: {
+        Row: {
+          endpoint: string
+          id: string
+          last_request: string
+          merchant_id: string
+          request_count: number
+          window_start: string
+        }
+        Insert: {
+          endpoint: string
+          id?: string
+          last_request?: string
+          merchant_id: string
+          request_count?: number
+          window_start?: string
+        }
+        Update: {
+          endpoint?: string
+          id?: string
+          last_request?: string
+          merchant_id?: string
+          request_count?: number
+          window_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rate_limits_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       risk_events: {
         Row: {
@@ -320,6 +421,30 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -333,8 +458,16 @@ export type Database = {
         Args: { encryption_key: string; pan_data: string }
         Returns: string
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
+      app_role: "admin" | "merchant" | "auditor"
       merchant_status: "active" | "pending" | "suspended" | "inactive"
       risk_decision: "approve" | "decline" | "review" | "challenge"
       token_status: "active" | "pending" | "expired" | "revoked" | "suspended"
@@ -471,6 +604,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "merchant", "auditor"],
       merchant_status: ["active", "pending", "suspended", "inactive"],
       risk_decision: ["approve", "decline", "review", "challenge"],
       token_status: ["active", "pending", "expired", "revoked", "suspended"],
