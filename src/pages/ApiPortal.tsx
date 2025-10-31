@@ -78,6 +78,124 @@ export default function ApiPortal() {
   "updated_at": "2025-10-30T11:30:00Z"
 }`,
     },
+    {
+      method: "GET",
+      path: "/list-tokens?status=active&limit=100",
+      desc: "List all tokens for a merchant with optional filtering",
+      isLive: true,
+      requiresAuth: false,
+      authType: "API Key (x-api-key header)",
+      request: "",
+      response: `{
+  "tokens": [
+    {
+      "token_id": "550e8400-e29b-41d4-a716-446655440000",
+      "token_value": "7b3f8c9d2a1e4f6b8c0d1e2f3a4b5c6d",
+      "status": "active",
+      "card_last_four": "1111",
+      "card_brand": "Visa",
+      "expires_at": "2026-10-30T10:30:00Z",
+      "created_at": "2025-10-30T10:30:00Z"
+    }
+  ],
+  "count": 1,
+  "offset": 0,
+  "limit": 100
+}`,
+    },
+    {
+      method: "POST",
+      path: "/create-transaction",
+      desc: "Log a transaction against a token",
+      isLive: true,
+      requiresAuth: false,
+      authType: "API Key (x-api-key header)",
+      request: `{
+  "token_value": "7b3f8c9d2a1e4f6b8c0d1e2f3a4b5c6d",
+  "amount": 99.99,
+  "currency": "USD",
+  "reference_number": "TXN-12345"
+}`,
+      response: `{
+  "transaction_id": "650e8400-e29b-41d4-a716-446655440000",
+  "token_id": "550e8400-e29b-41d4-a716-446655440000",
+  "amount": 99.99,
+  "currency": "USD",
+  "status": "completed",
+  "reference_number": "TXN-12345",
+  "created_at": "2025-10-30T12:00:00Z"
+}`,
+    },
+    {
+      method: "POST",
+      path: "/webhook-register",
+      desc: "Register a webhook subscription for lifecycle events",
+      isLive: true,
+      requiresAuth: false,
+      authType: "API Key (x-api-key header)",
+      request: `{
+  "event_type": "token_issued",
+  "url": "https://your-api.com/webhooks/aets"
+}`,
+      response: `{
+  "webhook_id": "750e8400-e29b-41d4-a716-446655440000",
+  "event_type": "token_issued",
+  "url": "https://your-api.com/webhooks/aets",
+  "secret": "wh_secret_abc123...",
+  "is_active": true,
+  "created_at": "2025-10-30T12:30:00Z"
+}`,
+    },
+  ];
+
+  const webhookEvents = [
+    {
+      event: "token_issued",
+      desc: "Triggered when a new token is successfully created",
+      payload: `{
+  "token_id": "550e8400-e29b-41d4-a716-446655440000",
+  "token_value": "7b3f8c9d2a1e4f6b8c0d1e2f3a4b5c6d",
+  "card_last_four": "1111",
+  "expires_at": "2026-10-30T10:30:00Z",
+  "created_at": "2025-10-30T10:30:00Z"
+}`,
+    },
+    {
+      event: "token_revoked",
+      desc: "Triggered when a token is permanently revoked",
+      payload: `{
+  "token_id": "550e8400-e29b-41d4-a716-446655440000",
+  "token_value": "7b3f8c9d2a1e4f6b8c0d1e2f3a4b5c6d",
+  "old_status": "active",
+  "new_status": "revoked",
+  "reason": "Fraud detected",
+  "updated_at": "2025-10-30T11:30:00Z"
+}`,
+    },
+    {
+      event: "token_suspended",
+      desc: "Triggered when a token is temporarily suspended",
+      payload: `{
+  "token_id": "550e8400-e29b-41d4-a716-446655440000",
+  "token_value": "7b3f8c9d2a1e4f6b8c0d1e2f3a4b5c6d",
+  "old_status": "active",
+  "new_status": "suspended",
+  "reason": "Suspected fraud",
+  "updated_at": "2025-10-30T11:30:00Z"
+}`,
+    },
+    {
+      event: "transaction_created",
+      desc: "Triggered when a transaction is logged against a token",
+      payload: `{
+  "transaction_id": "650e8400-e29b-41d4-a716-446655440000",
+  "token_id": "550e8400-e29b-41d4-a716-446655440000",
+  "amount": 99.99,
+  "currency": "USD",
+  "reference_number": "TXN-12345",
+  "created_at": "2025-10-30T12:00:00Z"
+}`,
+    },
   ];
 
   return (
@@ -175,6 +293,60 @@ export default function ApiPortal() {
                   Use sandbox environment for testing before going live
                 </p>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Webhook Events Section */}
+        <Card className="shadow-card">
+          <CardHeader>
+            <CardTitle>Webhook Events</CardTitle>
+            <CardDescription>
+              Real-time notifications for token lifecycle events. Webhooks are signed with HMAC-SHA256 using your webhook secret.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {webhookEvents.map((event, idx) => (
+              <div key={idx} className="border-b last:border-0 pb-4 last:pb-0">
+                <div className="flex items-center gap-3 mb-2">
+                  <Badge variant="secondary" className="font-mono">
+                    {event.event}
+                  </Badge>
+                  <span className="text-sm text-muted-foreground">{event.desc}</span>
+                </div>
+                <div className="mt-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium">Payload Example</span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleCopyCode(event.payload)}
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <pre className="bg-muted p-4 rounded-lg overflow-x-auto">
+                    <code className="text-sm">{event.payload}</code>
+                  </pre>
+                </div>
+              </div>
+            ))}
+            <div className="mt-4 p-4 bg-muted rounded-lg">
+              <h4 className="font-semibold mb-2">Webhook Signature Verification</h4>
+              <p className="text-sm text-muted-foreground mb-2">
+                All webhook requests include an X-Webhook-Signature header containing HMAC-SHA256 signature.
+              </p>
+              <pre className="bg-background p-3 rounded text-xs overflow-x-auto">
+{`const crypto = require('crypto');
+
+function verifyWebhook(payload, signature, secret) {
+  const hmac = crypto
+    .createHmac('sha256', secret)
+    .update(JSON.stringify(payload))
+    .digest('hex');
+  return hmac === signature;
+}`}
+              </pre>
             </div>
           </CardContent>
         </Card>

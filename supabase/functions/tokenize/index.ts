@@ -299,6 +299,26 @@ serve(async (req) => {
       encryption_method: 'AES-256'
     });
 
+    // Trigger webhook in background (fire and forget)
+    fetch(`${supabaseUrl}/functions/v1/webhook-trigger`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+      },
+      body: JSON.stringify({
+        merchant_id: merchant.id,
+        event_type: 'token_issued',
+        payload: {
+          token_id: token.id,
+          token_value: token.token_value,
+          card_last_four: lastFour,
+          expires_at: token.expires_at,
+          created_at: token.created_at,
+        },
+      }),
+    }).catch(err => console.error('Webhook trigger failed:', err));
+
     const responseTime = Date.now() - startTime;
     console.log(`Token created successfully in ${responseTime}ms:`, token.id);
 

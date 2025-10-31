@@ -171,6 +171,29 @@ serve(async (req) => {
     auditLogData.response_status = 200;
     await logAudit(supabase, auditLogData);
 
+    // Trigger webhook in background for revoked/suspended tokens (fire and forget)
+    if (requestData.status === 'revoked' || requestData.status === 'suspended') {
+      fetch(`${supabaseUrl}/functions/v1/webhook-trigger`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+        },
+        body: JSON.stringify({
+          merchant_id: merchant.id,
+          event_type: `token_${requestData.status}`,
+          payload: {
+            token_id: updatedToken.id,
+            token_value: updatedToken.token_value,
+            old_status: token.status,
+            new_status: requestData.status,
+            reason: requestData.reason,
+            updated_at: updatedToken.updated_at,
+          },
+        }),
+      }).catch(err => console.error('Webhook trigger failed:', err));
+    }
+
     const responseTime = Date.now() - startTime;
     console.log(`Token status updated successfully in ${responseTime}ms:`, updatedToken.id);
 

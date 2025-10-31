@@ -11,3 +11,15 @@ verify_jwt = true
 
 [functions.key-rotation]
 verify_jwt = true
+
+[functions.list-tokens]
+verify_jwt = false
+
+[functions.create-transaction]
+verify_jwt = false
+
+[functions.webhook-register]
+verify_jwt = false
+
+[functions.webhook-trigger]
+verify_jwt = true
